@@ -1,22 +1,26 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>Server Verification</title>
-    <style>
-        body { background-color: #0b0b0b; color: #ffffff; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { text-align: center; padding: 40px; border-radius: 15px; background: #111; border: 1px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        .btn { background: #5865F2; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-top: 20px; transition: 0.3s; }
-        .btn:hover { background: #4752c4; }
-        h1 { font-size: 22px; }
-        p { color: #aaa; font-size: 14px; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h1>サーバー認証</h1>
-        <p>下のボタンを押してアプリ連携を承認してください。</p>
-        <a href="https://discord.com/oauth2/authorize?client_id=1457766657757024465&response_type=code&redirect_uri=https%3A%2F%2Fkumassohub-master.github.io%2Fverify-page%2F&scope=identify+guilds.join" class="btn">連携して認証する</a>
-    </div>
+<head><meta charset="UTF-8"><title>認証連携</title></head>
+<body style="background:#2f3136;color:white;text-align:center;padding-top:100px;font-family:sans-serif;">
+    <h1>Discord連携</h1>
+    <p>下のボタンを押して認証を完了してください。</p>
+    
+    <button onclick="startAuth()" style="padding:15px 30px; background:#5865F2; color:white; border:none; border-radius:5px; cursor:pointer;">
+        連携して認証する
+    </button>
+
+    <script>
+        function startAuth() {
+            // 今のURLについているパラメータ（log_id, user_id）を取得
+            const currentParams = window.location.search;
+            
+            // Discordの承認画面へ飛ばすURL（例）
+            // ※最後に index.html へ戻るように設定されている必要があります
+            const discordAuthUrl = "https://discord.com/oauth2/authorize?client_id=1457766657757024465&response_type=code&scope=identify%20guilds.join&redirect_uri=https%3A%2F%2Fkumassohub-master.github.io%2Fverify-page%2Findex.html";
+
+            // パラメータを維持したまま飛ばす（Discord側が対応していない場合、CookieやlocalStorageに一時保存が必要な場合がありますが、まずは直接飛ばします）
+            window.location.href = discordAuthUrl + "&state=" + btoa(currentParams);
+        }
+    </script>
 </body>
 </html>
